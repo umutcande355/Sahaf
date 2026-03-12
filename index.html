@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+<meta name="apple-mobile-web-app-title" content="Sahaf"/>
+<meta name="theme-color" content="#0a0a0c"/>
+<title>Sahaf</title>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#0a0a0c;color:#e8e3dc;font-family:'Crimson Pro',Georgia,serif;overflow:hidden}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#252530;border-radius:4px}
+input,textarea,button{font-family:inherit;-webkit-appearance:none}
+textarea,input{-webkit-user-select:text;user-select:text}
+*{-webkit-tap-highlight-color:transparent}
+#app{height:100%;display:flex;overflow:hidden}
+#sidebar{width:256px;min-width:256px;background:#0e0e14;border-right:1px solid #1a1a26;display:flex;flex-direction:column;height:100%;transition:margin .25s}
+#sidebar.hide{margin-left:-256px}
+.fr{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:9px;cursor:pointer;font-size:14px;color:#888;transition:background .15s;-webkit-user-select:none;user-select:none}
+.fr:hover,.fr.act{background:#1c1c2a;color:#e8e3dc}
+#main{flex:1;display:flex;flex-direction:column;min-width:0;height:100%;overflow:hidden}
+#topbar{background:rgba(10,10,12,.95);backdrop-filter:blur(10px);border-bottom:1px solid #1a1a26;padding:11px 14px;display:flex;align-items:center;gap:8px;flex-shrink:0;min-height:50px}
+#content{flex:1;overflow-y:auto;padding:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:11px}
+.card{background:#141418;border:1px solid #1e1e2a;border-radius:13px;padding:13px 15px;cursor:pointer;transition:border-color .15s,transform .15s;position:relative}
+.card:hover{border-color:#3a3a55;transform:translateY(-1px)}
+.btn{display:inline-flex;align-items:center;gap:4px;padding:7px 12px;border-radius:9px;border:1px solid #252535;background:none;color:#aaa;cursor:pointer;font-size:13px;white-space:nowrap}
+.btn:hover{background:#1c1c26;color:#e8e3dc}
+.btnp{background:#7c3aed;border-color:#7c3aed;color:#fff}
+.btnp:hover{background:#6d28d9}
+.inp{background:#1a1a22;border:1px solid #1e1e2a;border-radius:9px;color:#e8e3dc;padding:8px 12px;font-size:14px;outline:none;width:100%}
+.inp:focus{border-color:#7c3aed}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(14px);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px}
+.box{background:#141418;border:1px solid #28283a;border-radius:20px;padding:26px;width:100%;max-width:340px}
+#drawScreen{position:fixed;inset:0;background:#0a0a0c;z-index:90;display:none;flex-direction:column}
+#drawScreen.show{display:flex}
+#drawBar{background:#0e0e14;border-bottom:1px solid #1a1a26;padding:8px 12px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;flex-shrink:0}
+#drawCanvas{flex:1;width:100%;display:block;touch-action:none;-webkit-user-select:none;user-select:none}
+#pdfScreen{position:fixed;inset:0;background:#0a0a0c;z-index:80;display:none;flex-direction:column}
+#pdfScreen.show{display:flex}
+#pdfBar{background:#0e0e14;border-bottom:1px solid #1a1a26;padding:9px 13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0}
+#pdfDrawBar{background:#111118;border-bottom:1px solid #1a1a26;padding:7px 12px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;flex-shrink:0;display:none}
+#pdfDrawBar.show{display:flex}
+#pdfWrap{flex:1;overflow:auto;background:#1a1a22;display:flex;justify-content:center;padding:14px}
+#pdfPageWrap{position:relative;display:inline-block;box-shadow:0 6px 32px rgba(0,0,0,.6)}
+#pdfCanvas{display:block}
+#pdfDrawCanvas{position:absolute;top:0;left:0;width:100%;height:100%;touch-action:none;-webkit-user-select:none;user-select:none;pointer-events:none}
+#pdfDrawCanvas.active{pointer-events:auto;cursor:crosshair}
+#pdfNav{background:#0e0e14;border-top:1px solid #1a1a26;padding:10px;display:flex;align-items:center;justify-content:center;gap:14px;flex-shrink:0}
+.sw{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent;flex-shrink:0;outline:none}
+.sw.on{border-color:#fff!important}
+.sz{border-radius:50%;background:#2a2a3a;cursor:pointer;flex-shrink:0;border:none;outline:none}
+.sz.on{background:#7c3aed}
+.badge{font-size:11px;padding:1px 7px;border-radius:99px;background:#1a1a22;color:#444456;font-family:'DM Mono',monospace;flex-shrink:0}
+.pin-dot{width:13px;height:13px;border-radius:50%;background:#252535;transition:background .12s}
+.pin-dot.filled{background:#7c3aed}
+@keyframes fu{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fu .18s ease}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div style="padding:16px 13px 11px;border-bottom:1px solid #1a1a26;position:relative">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:19px">🗂</span><span style="font-size:17px;font-weight:700">Sahaf</span></div>
+        <button class="btn" onclick="showStats()" style="padding:4px 8px;font-size:15px;border:none">📊</button>
+      </div>
+      <input class="inp" id="gSearch" placeholder="🔍 Tümünde ara..." oninput="doGlobalSearch()" style="font-size:13px;padding:7px 11px;font-family:'DM Mono',monospace"/>
+      <div id="gResults" style="position:absolute;left:0;right:0;background:#141418;border:1px solid #252535;border-radius:0 0 11px 11px;z-index:200;max-height:240px;overflow-y:auto;display:none"></div>
+    </div>
+    <div id="folderList" style="flex:1;overflow-y:auto;padding:9px 7px"></div>
+    <div style="padding:9px 13px;border-top:1px solid #1a1a22;text-align:center">
+      <span style="font-size:11px;color:#1e1e2a;font-family:'DM Mono',monospace">Sahaf · Kişisel Arşiv</span>
+    </div>
+  </aside>
+  <main id="main">
+    <div id="topbar">
+      <button class="btn" onclick="toggleSide()" style="border:none;font-size:19px;padding:3px 7px">☰</button>
+      <div id="backBtn" style="display:none"><button class="btn" onclick="goBack()" style="border:none">← Geri</button></div>
+      <span id="topTitle" style="flex:1;font-size:15px;font-weight:600;color:#c8c3bc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Sahaf</span>
+      <div id="folderActions" style="display:none;gap:6px;align-items:center">
+        <input class="inp" id="folderSearch" placeholder="Ara..." oninput="renderItems()" style="width:120px;font-size:12px;padding:6px 10px;font-family:'DM Mono',monospace"/>
+        <button class="btn" onclick="addNote()">📝 Not</button>
+        <button class="btn" onclick="openDraw(null)" style="color:#47a96e">✏️ Çizim</button>
+        <button class="btn" onclick="document.getElementById('pdfInput').click()" style="color:#e8613a">📄 PDF</button>
+        <input type="file" id="pdfInput" accept=".pdf" multiple style="display:none" onchange="handlePDF(event)"/>
+      </div>
+      <div id="noteActions" style="display:none;gap:6px">
+        <button class="btn" id="pinBtn" onclick="togglePinActive()">📍</button>
+        <button class="btn" id="drawEditBtn" onclick="openDraw(state.activeItem)" style="display:none;color:#47a96e">✏️ Düzenle</button>
+        <button class="btn" onclick="deleteActive()" style="color:#be123c">🗑</button>
+      </div>
+    </div>
+    <div id="content"></div>
+  </main>
+</div>
+
+<!-- Draw Screen -->
+<div id="drawScreen">
+  <div id="drawBar">
+    <button class="btn" onclick="closeDraw()">← Geri</button>
+    <div style="width:1px;height:22px;background:#1e1e2a"></div>
+    <button class="btn" id="penBtn" onclick="setDrawTool('pen')" style="background:#7c3aed;color:#fff;border-color:#7c3aed">✏️ Kalem</button>
+    <button class="btn" id="eraserBtn" onclick="setDrawTool('eraser')">⬜ Silgi</button>
+    <div style="width:1px;height:22px;background:#1e1e2a"></div>
+    <div id="drawColors" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+    <div style="width:1px;height:22px;background:#1e1e2a"></div>
+    <div id="drawSizes" style="display:flex;gap:5px;align-items:center"></div>
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <button class="btn" onclick="undoDraw()">↩ Geri Al</button>
+      <button class="btn" onclick="clearDraw()" style="color:#be123c">🗑 Temizle</button>
+      <button class="btn btnp" onclick="saveDraw()">✓ Kaydet</button>
+    </div>
+  </div>
+  <canvas id="drawCanvas"></canvas>
+</div>
+
+<!-- PDF Screen -->
+<div id="pdfScreen">
+  <div id="pdfBar">
+    <button class="btn" onclick="closePDF()">← Geri</button>
+    <span id="pdfTitle" style="flex:1;font-size:14px;font-weight:600;color:#e8e3dc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 8px"></span>
+    <button class="btn" onclick="pdfZoom(-1)">−</button>
+    <span id="zoomLabel" style="font-size:12px;color:#888;font-family:'DM Mono',monospace;min-width:40px;text-align:center">150%</span>
+    <button class="btn" onclick="pdfZoom(1)">+</button>
+    <button class="btn" id="pdfDrawToggle" onclick="togglePDFDraw()" style="color:#47a96e">✏️ Çiz</button>
+    <button class="btn" id="pdfPinBtn" onclick="togglePinPDF()">📍</button>
+    <button class="btn" onclick="deletePDF()" style="color:#be123c">🗑</button>
+  </div>
+  <div id="pdfDrawBar">
+    <button class="btn" id="pdfPenBtn" onclick="setPDFTool('pen')" style="background:#7c3aed;color:#fff;border-color:#7c3aed">✏️</button>
+    <button class="btn" id="pdfEraserBtn" onclick="setPDFTool('eraser')">⬜</button>
+    <div style="width:1px;height:22px;background:#1e1e2a"></div>
+    <div id="pdfColors" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+    <div style="width:1px;height:22px;background:#1e1e2a"></div>
+    <div id="pdfSizes" style="display:flex;gap:5px;align-items:center"></div>
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <button class="btn" onclick="undoPDFDraw()">↩</button>
+      <button class="btn" onclick="clearPDFDraw()" style="color:#be123c">🗑</button>
+      <button class="btn" onclick="savePageAnnotation()" style="background:#047857;border-color:#047857;color:#fff">💾 Kaydet</button>
+    </div>
+  </div>
+  <div id="pdfWrap">
+    <div id="pdfPageWrap">
+      <canvas id="pdfCanvas"></canvas>
+      <canvas id="pdfDrawCanvas"></canvas>
+    </div>
+  </div>
+  <div id="pdfNav" style="display:none">
+    <button class="btn" id="prevPage" onclick="changePage(-1)">‹ Önceki</button>
+    <span id="pageInfo" style="font-size:13px;color:#888;font-family:'DM Mono',monospace"></span>
+    <button class="btn" id="nextPage" onclick="changePage(1)">Sonraki ›</button>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="ov" id="statsOv" style="display:none" onclick="this.style.display='none'">
+  <div class="box" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <h3 style="font-size:19px">📊 İstatistikler</h3>
+      <button onclick="document.getElementById('statsOv').style.display='none'" style="background:none;border:none;color:#555;cursor:pointer;font-size:22px">×</button>
+    </div>
+    <div id="statsGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:9px"></div>
+  </div>
+</div>
+
+<!-- PIN -->
+<div class="ov" id="pinOv" style="display:none">
+  <div class="box" style="text-align:center;max-width:300px">
+    <div style="font-size:36px;margin-bottom:8px">🔒</div>
+    <h3 id="pinTitle" style="font-size:20px;margin-bottom:20px">PIN</h3>
+    <div id="pinDots" style="display:flex;justify-content:center;gap:14px;margin-bottom:24px"></div>
+    <div id="pinGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px"></div>
+    <button id="pinCancel" onclick="closePinModal()" style="background:none;border:none;color:#444;cursor:pointer;font-size:13px">İptal</button>
+  </div>
+</div>
+
+<!-- Emoji -->
+<div class="ov" id="emojiOv" style="display:none" onclick="this.style.display='none'">
+  <div class="box" onclick="event.stopPropagation()" style="max-width:280px">
+    <p style="color:#888;font-size:13px;margin-bottom:11px;font-family:'DM Mono',monospace">İkon seç</p>
+    <div id="emojiGrid" style="display:flex;flex-wrap:wrap;gap:7px"></div>
+  </div>
+</div>
+
+<script>
+// PDF.js yükle
+(function(){
+  const s=document.createElement('script');
+  s.src='https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js';
+  s.onload=()=>{ pdfjsLib.GlobalWorkerOptions.workerSrc='https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js'; };
+  document.head.appendChild(s);
+})();
+
+const LS={
+  get:k=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):null}catch{return null}},
+  set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+};
+
+const state={
+  folders:LS.get('sahaf_v3')||[],
+  unlocked:LS.get('sahaf_ul')||{},
+  activeFId:null, activeItem:null, view:'home',
+  drawItem:null, drawTool:'pen', drawColor:'#e2ddd6', drawSize:4,
+  drawHist:[], drawHistI:-1,
+  pdfDoc:null, pdfPage:1, pdfScale:1.5,
+  pdfDrawMode:false, pdfDrawTool:'pen', pdfDrawColor:'#ff3b30', pdfDrawSize:4,
+  pdfHist:[], pdfHistI:-1, pdfAnnotations:{},
+  pinCorrect:null, pinResolve:null, emojiFor:null
+};
+
+const save=()=>LS.set('sahaf_v3',state.folders);
+const uid=()=>Math.random().toString(36).slice(2,10);
+const fmt=iso=>new Date(iso).toLocaleDateString('tr-TR',{day:'numeric',month:'short',year:'numeric'});
+const $=id=>document.getElementById(id);
+const NC=['#7c3aed','#0e7490','#047857','#b45309','#be123c','#1d4ed8','#9333ea','#0f766e'];
+const EMOJIS=['📁','📚','🎨','💼','🔬','🏠','✈️','🎵','💡','🌿','⭐','🔥','🎯','📷','🧪','🗺️'];
+const PCOLORS=['#e2ddd6','#ffffff','#ff3b30','#ff9500','#ffcc00','#34c759','#007aff','#af52de','#000000'];
+const PSIZES=[2,4,7,12,22];
+const activeFolder=()=>state.folders.find(f=>f.id===state.activeFId);
+const isMobile=()=>window.innerWidth<768;
+
+function toggleSide(){ $('sidebar').classList.toggle('hide'); }
+window.addEventListener('resize',()=>{ if(window.innerWidth>=768) $('sidebar').classList.remove('hide'); });
+if(isMobile()) $('sidebar').classList.add('hide');
+
+function renderSidebar(){
+  const list=$('folderList');
+  list.innerHTML='';
+  state.folders.forEach(f=>{
+    const isA=f.id===state.activeFId;
+    const locked=f.pin&&!state.unlocked[f.id];
+    const row=document.createElement('div');
+    row.className='fr'+(isA?' act':'');
+    row.innerHTML=`
+      <button onclick="event.stopPropagation();openEmojiFor('${f.id}')" style="background:none;border:none;cursor:pointer;font-size:15px;padding:0;flex-shrink:0">${f.icon||'📁'}</button>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</span>
+      ${locked?'<span style="font-size:11px">🔒</span>':''}
+      <span class="badge">${f.items.length}</span>
+      <button onclick="event.stopPropagation();toggleFolderPin('${f.id}')" style="background:none;border:none;color:#333;cursor:pointer;font-size:12px;padding:2px">${f.pin?'🔐':'🔓'}</button>
+      <button onclick="event.stopPropagation();deleteFolder('${f.id}')" style="background:none;border:none;color:#333;cursor:pointer;font-size:13px;padding:2px">🗑</button>
+    `;
+    row.onclick=()=>openFolder(f.id);
+    list.appendChild(row);
+  });
+  const addRow=document.createElement('div');
+  addRow.style.cssText='padding:7px 5px';
+  addRow.innerHTML=`
+    <div id="addFolderBtn" class="fr" onclick="showAddFolder()" style="color:#444456">＋ Yeni Klasör</div>
+    <div id="addFolderForm" style="display:none">
+      <input class="inp" id="newFolderInp" placeholder="Klasör adı..." style="margin-bottom:8px;font-size:14px"
+        onkeydown="if(event.key==='Enter')createFolder();if(event.key==='Escape')hideAddFolder()"/>
+      <div style="display:flex;gap:6px">
+        <button class="btn btnp" onclick="createFolder()" style="flex:1;justify-content:center">Oluştur</button>
+        <button class="btn" onclick="hideAddFolder()">İptal</button>
+      </div>
+    </div>
+  `;
+  list.appendChild(addRow);
+}
+
+function showAddFolder(){ $('addFolderBtn').style.display='none'; $('addFolderForm').style.display='block'; setTimeout(()=>$('newFolderInp').focus(),50); }
+function hideAddFolder(){ $('addFolderBtn').style.display=''; $('addFolderForm').style.display='none'; $('newFolderInp').value=''; }
+function createFolder(){
+  const name=$('newFolderInp').value.trim(); if(!name)return;
+  state.folders.push({id:uid(),name,icon:'📁',color:NC[state.folders.length%NC.length],createdAt:new Date().toISOString(),items:[],pin:null});
+  save(); hideAddFolder(); renderSidebar();
+}
+function deleteFolder(id){
+  state.folders=state.folders.filter(f=>f.id!==id); save();
+  if(state.activeFId===id){state.activeFId=null;setView('home');}
+  renderSidebar();
+}
+function toggleFolderPin(id){
+  const f=state.folders.find(x=>x.id===id); if(!f)return;
+  if(f.pin){f.pin=null;delete state.unlocked[id];LS.set('sahaf_ul',state.unlocked);save();renderSidebar();}
+  else{openPinModal('Yeni PIN Oluştur',null,pin=>{f.pin=pin;save();renderSidebar();});}
+}
+function openFolder(id){
+  const f=state.folders.find(x=>x.id===id); if(!f)return;
+  if(f.pin&&!state.unlocked[id]){
+    openPinModal('Klasör Kilidi',f.pin,()=>{
+      state.unlocked[id]=true;LS.set('sahaf_ul',state.unlocked);
+      state.activeFId=id;setView('folder');renderSidebar();
+      if(isMobile())$('sidebar').classList.add('hide');
+    });
+  } else {
+    state.activeFId=id;setView('folder');renderSidebar();
+    if(isMobile())$('sidebar').classList.add('hide');
+  }
+}
+
+function setView(v){
+  state.view=v;
+  $('backBtn').style.display=v!=='home'?'':'none';
+  $('folderActions').style.display=v==='folder'?'flex':'none';
+  $('noteActions').style.display=(v==='note'||v==='drawing')?'flex':'none';
+  $('drawEditBtn').style.display=v==='drawing'?'':'none';
+  const af=activeFolder();
+  $('topTitle').textContent=v==='home'?'Sahaf':v==='folder'&&af?`${af.icon||'📁'} ${af.name}`:state.activeItem?.title||'';
+  renderContent();
+}
+function goBack(){
+  if(state.view==='folder'){state.activeFId=null;setView('home');renderSidebar();}
+  else{state.activeItem=null;setView('folder');}
+}
+function renderContent(){
+  const c=$('content'); c.innerHTML='';
+  if(state.view==='home'){
+    c.innerHTML=`<div class="fu" style="text-align:center;margin-top:60px"><div style="font-size:52px;margin-bottom:14px">🗂</div><p style="font-size:16px;color:#555568">Soldaki panelden bir klasör seç</p></div>`;
+    return;
+  }
+  if(state.view==='folder'){renderItems();return;}
+  if(state.view==='note'){renderNoteEditor();return;}
+  if(state.view==='drawing'){renderDrawingView();return;}
+}
+
+function renderItems(){
+  const c=$('content'); c.innerHTML='';
+  const af=activeFolder(); if(!af)return;
+  const q=($('folderSearch')?.value||'').toLowerCase();
+  let items=af.items.filter(i=>i.title.toLowerCase().includes(q)||(i.body||'').toLowerCase().includes(q));
+  items=items.sort((a,b)=>{
+    if(a.pinned&&!b.pinned)return -1; if(!a.pinned&&b.pinned)return 1;
+    return new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt);
+  });
+  if(items.length===0){
+    c.innerHTML=`<div style="text-align:center;margin-top:50px"><div style="font-size:38px">📂</div><p style="margin-top:10px;color:#44444f">Bu klasör boş.</p></div>`;
+    return;
+  }
+  const grid=document.createElement('div'); grid.className='grid fu';
+  items.forEach(item=>{
+    const card=document.createElement('div'); card.className='card';
+    if(item.pinned)card.style.borderColor='#7a5a2a';
+    const icon=item.type==='pdf'?'📄':item.type==='drawing'?'✏️':'📝';
+    const anns=item.annotations?Object.keys(item.annotations).length:0;
+    card.innerHTML=`
+      ${item.pinned?'<span style="position:absolute;top:9px;right:9px;font-size:11px">📌</span>':''}
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">
+        <span style="font-size:14px">${icon}</span>
+        <span style="font-size:13px;font-weight:600;color:#e8e3dc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${item.title}</span>
+      </div>
+      ${item.type==='note'&&item.body?`<p style="font-size:12px;color:#444456;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:5px">${item.body}</p>`:''}
+      ${item.type==='drawing'&&item.data?`<div style="border-radius:7px;overflow:hidden;height:56px;background:#1a1a22;margin-bottom:5px"><img src="${item.data}" style="width:100%;height:100%;object-fit:cover"/></div>`:''}
+      ${item.type==='pdf'?`<p style="font-size:11px;color:#7a613a;font-family:'DM Mono',monospace;margin-bottom:5px">${item.size||''}${anns>0?' · ✏️ notlu':''}</p>`:''}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">
+        <span style="font-size:11px;color:#2a2a38;font-family:'DM Mono',monospace">${fmt(item.updatedAt||item.createdAt)}</span>
+        <button onclick="event.stopPropagation();deleteItem('${item.id}')" style="background:none;border:none;color:#2a2a38;cursor:pointer;font-size:13px">🗑</button>
+      </div>
+    `;
+    card.onclick=()=>openItem(item);
+    grid.appendChild(card);
+  });
+  c.appendChild(grid);
+}
+
+function openItem(item){
+  state.activeItem=item;
+  if(item.type==='pdf'){openPDFViewer(item);return;}
+  setView(item.type==='drawing'?'drawing':'note');
+  $('pinBtn').textContent=item.pinned?'📌':'📍';
+}
+
+function renderNoteEditor(){
+  const item=state.activeItem; if(!item)return;
+  const c=$('content');
+  const words=(item.body||'').split(/\s+/).filter(Boolean).length;
+  const colorDots=NC.map(col=>`<button class="sw ${item.color===col?'on':''}" style="background:${col}" onclick="updateItem({color:'${col}'});renderNoteEditor()"></button>`).join('');
+  c.innerHTML=`
+    <div class="fu" style="max-width:720px;margin:0 auto">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:14px;flex-wrap:wrap">
+        ${colorDots}
+        <div style="margin-left:auto;display:flex;align-items:center;gap:9px">
+          <label class="btn" style="cursor:pointer">🖼 Resim<input type="file" accept="image/*" style="display:none" onchange="addImage(event)"/></label>
+          <span style="font-size:11px;color:#444456;font-family:'DM Mono',monospace">${words} kelime</span>
+        </div>
+      </div>
+      <input id="noteTitle" value="${(item.title||'').replace(/"/g,'&quot;').replace(/</g,'&lt;')}" placeholder="Başlık..."
+        style="background:transparent;border:none;border-bottom:1px solid #1e1e2a;color:#e8e3dc;padding:7px 0;font-size:24px;font-weight:700;outline:none;width:100%;font-family:'Crimson Pro',serif;margin-bottom:11px"
+        oninput="updateItem({title:this.value})"/>
+      <textarea id="noteBody" placeholder="Notunu buraya yaz..."
+        style="background:transparent;border:none;color:#b8b3ac;padding:7px 0;font-size:17px;line-height:1.85;min-height:55vh;resize:vertical;outline:none;width:100%;font-family:'Crimson Pro',serif"
+        oninput="updateItem({body:this.value})">${(item.body||'').replace(/</g,'&lt;')}</textarea>
+      <div id="imageGrid" style="display:flex;flex-wrap:wrap;gap:9px;margin-top:11px"></div>
+      <p style="font-size:11px;color:#333345;font-family:'DM Mono',monospace;margin-top:13px">${fmt(item.createdAt)}</p>
+    </div>
+  `;
+  renderImages();
+}
+
+function renderImages(){
+  const item=state.activeItem; const grid=$('imageGrid'); if(!grid||!item)return;
+  grid.innerHTML=(item.images||[]).map(img=>`
+    <div style="position:relative;border-radius:9px;overflow:hidden;border:1px solid #252535">
+      <img src="${img.data}" style="width:115px;height:85px;object-fit:cover;display:block"/>
+      <button onclick="removeImage('${img.id}')" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,.75);border:none;border-radius:50%;width:19px;height:19px;color:#fff;cursor:pointer;font-size:12px;line-height:1">×</button>
+    </div>
+  `).join('');
+}
+
+function addImage(e){
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    if(!state.activeItem.images)state.activeItem.images=[];
+    state.activeItem.images.push({id:uid(),data:ev.target.result});
+    updateItem({}); renderImages();
+  };
+  r.readAsDataURL(f);
+}
+function removeImage(id){ state.activeItem.images=(state.activeItem.images||[]).filter(i=>i.id!==id); updateItem({}); renderImages(); }
+
+function renderDrawingView(){
+  const item=state.activeItem; if(!item)return;
+  $('content').innerHTML=`
+    <div class="fu" style="display:flex;flex-direction:column;gap:12px;align-items:center">
+      <div style="display:flex;align-items:center;gap:8px;align-self:flex-start">
+        <span style="font-size:17px">✏️</span>
+        <input value="${(item.title||'').replace(/"/g,'&quot;')}" oninput="updateItem({title:this.value})"
+          style="background:transparent;border:none;color:#e8e3dc;font-size:18px;font-weight:700;outline:none;font-family:'Crimson Pro',serif"/>
+      </div>
+      ${item.data?`<img src="${item.data}" style="max-width:100%;max-height:72vh;border-radius:13px;border:1px solid #252535"/>`:'<p style="color:#444">Henüz çizim yok.</p>'}
+    </div>
+  `;
+}
+
+function updateItem(patch){
+  Object.assign(state.activeItem,patch,{updatedAt:new Date().toISOString()});
+  const af=activeFolder();
+  if(af){const idx=af.items.findIndex(i=>i.id===state.activeItem.id);if(idx!==-1)af.items[idx]=state.activeItem;}
+  save(); $('topTitle').textContent=state.activeItem.title||'';
+}
+function deleteItem(id){
+  const af=activeFolder(); if(!af)return;
+  af.items=af.items.filter(i=>i.id!==id); save();
+  if(state.activeItem?.id===id){state.activeItem=null;setView('folder');}
+  else renderItems();
+}
+function deleteActive(){ if(state.activeItem)deleteItem(state.activeItem.id); }
+function togglePinActive(){
+  if(!state.activeItem)return;
+  state.activeItem.pinned=!state.activeItem.pinned;
+  updateItem({}); $('pinBtn').textContent=state.activeItem.pinned?'📌':'📍';
+}
+function addNote(){
+  const af=activeFolder(); if(!af)return;
+  const n={id:uid(),type:'note',title:'Yeni Not',body:'',color:NC[0],tags:[],images:[],pinned:false,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+  af.items.push(n); save(); state.activeItem=n; setView('note');
+  if(isMobile())$('sidebar').classList.add('hide');
+}
+function handlePDF(e){
+  const af=activeFolder(); if(!af)return;
+  Array.from(e.target.files).forEach(file=>{
+    const r=new FileReader();
+    r.onload=ev=>{
+      af.items.push({id:uid(),type:'pdf',title:file.name.replace(/\.pdf$/i,''),data:ev.target.result,size:(file.size/1024).toFixed(0)+'KB',pinned:false,tags:[],annotations:{},createdAt:new Date().toISOString()});
+      save(); renderItems();
+    };
+    r.readAsDataURL(file);
+  });
+  e.target.value='';
+}
+
+// ── Çizim ──
+let drawCtx=null;
+function makeDrawHandlers(canvas,getCtx,getS,bg){
+  let drawing=false,last=null;
+  const block=e=>{e.preventDefault();e.stopPropagation();};
+  const pos=e=>{
+    const r=canvas.getBoundingClientRect();
+    const src=e.touches?e.touches[0]:(e.changedTouches?e.changedTouches[0]:e);
+    return{x:src.clientX-r.left,y:src.clientY-r.top};
+  };
+  const down=e=>{
+    e.preventDefault();e.stopPropagation();
+    if(canvas.setPointerCapture&&e.pointerId!=null)canvas.setPointerCapture(e.pointerId);
+    drawing=true; const p=pos(e); last=p;
+    const ctx=getCtx(); const s=getS();
+    ctx.beginPath();ctx.arc(p.x,p.y,(s.tool==='eraser'?s.size*3:s.size)/2,0,Math.PI*2);
+    ctx.fillStyle=s.tool==='eraser'?bg:s.color; ctx.fill();
+  };
+  const move=e=>{
+    e.preventDefault();e.stopPropagation();
+    if(!drawing||!last)return;
+    const p=pos(e); const ctx=getCtx(); const s=getS();
+    ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);
+    ctx.strokeStyle=s.tool==='eraser'?bg:s.color;
+    ctx.lineWidth=s.tool==='eraser'?s.size*6:s.size;
+    ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();
+    last=p;
+  };
+  const up=e=>{e.preventDefault();e.stopPropagation();if(drawing){drawing=false;last=null;}};
+  canvas.addEventListener('pointerdown',down,{passive:false});
+  canvas.addEventListener('pointermove',move,{passive:false});
+  canvas.addEventListener('pointerup',up,{passive:false});
+  canvas.addEventListener('pointercancel',up,{passive:false});
+  canvas.addEventListener('touchstart',block,{passive:false});
+  canvas.addEventListener('touchmove',block,{passive:false});
+  canvas.addEventListener('touchend',block,{passive:false});
+}
+
+function openDraw(item){
+  state.drawItem=item; state.drawHist=[]; state.drawHistI=-1;
+  $('drawScreen').classList.add('show');
+  renderDrawToolbar();
+  setTimeout(()=>{
+    const cv=$('drawCanvas');
+    const pr=window.devicePixelRatio||2;
+    const w=cv.offsetWidth,h=cv.offsetHeight;
+    cv.width=w*pr; cv.height=h*pr;
+    drawCtx=cv.getContext('2d'); drawCtx.scale(pr,pr);
+    drawCtx.fillStyle='#1a1a26'; drawCtx.fillRect(0,0,w,h);
+    if(item?.data){
+      const img=new Image(); img.onload=()=>{drawCtx.drawImage(img,0,0,w,h);pushDrawH();}; img.src=item.data;
+    } else {pushDrawH();}
+    makeDrawHandlers(cv,()=>drawCtx,()=>({tool:state.drawTool,color:state.drawColor,size:state.drawSize}),'#1a1a26');
+  },50);
+}
+function closeDraw(){ $('drawScreen').classList.remove('show'); }
+function pushDrawH(){
+  const d=$('drawCanvas').toDataURL();
+  state.drawHist=state.drawHist.slice(0,state.drawHistI+1);
+  state.drawHist.push(d); state.drawHistI=state.drawHist.length-1;
+}
+function undoDraw(){
+  if(state.drawHistI<=0)return; state.drawHistI--;
+  const cv=$('drawCanvas'); const img=new Image();
+  img.onload=()=>{drawCtx.clearRect(0,0,cv.width,cv.height);drawCtx.drawImage(img,0,0,cv.offsetWidth,cv.offsetHeight);};
+  img.src=state.drawHist[state.drawHistI];
+}
+function clearDraw(){
+  const cv=$('drawCanvas'); drawCtx.fillStyle='#1a1a26'; drawCtx.fillRect(0,0,cv.offsetWidth,cv.offsetHeight); pushDrawH();
+}
+function saveDraw(){
+  const data=$('drawCanvas').toDataURL('image/png');
+  const af=activeFolder(); if(!af){closeDraw();return;}
+  if(state.drawItem){
+    const idx=af.items.findIndex(i=>i.id===state.drawItem.id);
+    if(idx!==-1){af.items[idx].data=data;af.items[idx].updatedAt=new Date().toISOString();}
+    if(state.activeItem?.id===state.drawItem.id){state.activeItem.data=data;renderDrawingView();}
+  } else {
+    af.items.push({id:uid(),type:'drawing',title:'Çizim '+new Date().toLocaleDateString('tr-TR'),data,pinned:false,tags:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+  }
+  save(); renderItems(); closeDraw();
+}
+function setDrawTool(t){
+  state.drawTool=t;
+  $('penBtn').style.cssText=t==='pen'?'background:#7c3aed;color:#fff;border-color:#7c3aed;':'';
+  $('eraserBtn').style.cssText=t==='eraser'?'background:#7c3aed;color:#fff;border-color:#7c3aed;':'';
+  renderDrawToolbar();
+}
+function renderDrawToolbar(){
+  $('drawColors').innerHTML=PCOLORS.map(c=>`<button class="sw${state.drawColor===c&&state.drawTool!=='eraser'?' on':''}" style="background:${c}" onclick="state.drawColor='${c}';state.drawTool='pen';renderDrawToolbar()"></button>`).join('');
+  $('drawSizes').innerHTML=PSIZES.map(s=>`<button class="sz${state.drawSize===s?' on':''}" style="width:${Math.max(s+8,16)}px;height:${Math.max(s+8,16)}px;min-width:16px;min-height:16px" onclick="state.drawSize=${s};renderDrawToolbar()"></button>`).join('');
+}
+
+// ── PDF ──
+let pdfDrawCtx=null;
+function openPDFViewer(item){
+  state.activeItem=item; state.pdfPage=1; state.pdfScale=1.5;
+  state.pdfDrawMode=false; state.pdfAnnotations=item.annotations||{};
+  state.pdfHist=[]; state.pdfHistI=-1;
+  $('pdfTitle').textContent=item.title;
+  $('pdfPinBtn').textContent=item.pinned?'📌':'📍';
+  $('pdfDrawToggle').style.cssText='color:#47a96e';
+  $('pdfDrawBar').classList.remove('show');
+  $('pdfDrawCanvas').classList.remove('active');
+  $('pdfScreen').classList.add('show');
+  renderPDFColors(); renderPDFSizes();
+  const tryLoad=()=>{
+    if(typeof pdfjsLib!=='undefined'){loadPDF(item);}
+    else{setTimeout(tryLoad,300);}
+  };
+  tryLoad();
+}
+function loadPDF(item){
+  const base64=item.data.split(',')[1];
+  const binary=atob(base64);
+  const bytes=new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+  pdfjsLib.getDocument({data:bytes}).promise.then(pdf=>{
+    state.pdfDoc=pdf;
+    $('pdfNav').style.display=pdf.numPages>1?'flex':'none';
+    renderPDFPage();
+  });
+}
+function renderPDFPage(){
+  if(!state.pdfDoc)return;
+  state.pdfDoc.getPage(state.pdfPage).then(page=>{
+    const vp=page.getViewport({scale:state.pdfScale});
+    const cv=$('pdfCanvas'); cv.width=vp.width; cv.height=vp.height;
+    page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise.then(()=>{
+      const dc=$('pdfDrawCanvas'); dc.width=vp.width; dc.height=vp.height;
+      pdfDrawCtx=dc.getContext('2d');
+      const ann=state.pdfAnnotations[state.pdfPage];
+      if(ann){const img=new Image();img.onload=()=>{pdfDrawCtx.drawImage(img,0,0);pushPDFH();};img.src=ann;}
+      else{pushPDFH();}
+      if(state.pdfDrawMode)makePDFDrawHandlers();
+    });
+    $('pageInfo').textContent=`${state.pdfPage} / ${state.pdfDoc.numPages}`;
+    $('prevPage').style.opacity=state.pdfPage<=1?'0.3':'1';
+    $('nextPage').style.opacity=state.pdfPage>=state.pdfDoc.numPages?'0.3':'1';
+  });
+}
+function makePDFDrawHandlers(){
+  const dc=$('pdfDrawCanvas');
+  makeDrawHandlers(dc,()=>pdfDrawCtx,()=>({tool:state.pdfDrawTool,color:state.pdfDrawColor,size:state.pdfDrawSize}),'rgba(0,0,0,0)');
+}
+function pushPDFH(){
+  const d=$('pdfDrawCanvas').toDataURL();
+  state.pdfHist=state.pdfHist.slice(0,state.pdfHistI+1);
+  state.pdfHist.push(d); state.pdfHistI=state.pdfHist.length-1;
+}
+function undoPDFDraw(){
+  if(state.pdfHistI<=0)return; state.pdfHistI--;
+  const dc=$('pdfDrawCanvas'); const img=new Image();
+  img.onload=()=>{pdfDrawCtx.clearRect(0,0,dc.width,dc.height);pdfDrawCtx.drawImage(img,0,0);};
+  img.src=state.pdfHist[state.pdfHistI];
+}
+function clearPDFDraw(){pdfDrawCtx.clearRect(0,0,$('pdfDrawCanvas').width,$('pdfDrawCanvas').height);pushPDFH();}
+function savePageAnnotation(){
+  state.pdfAnnotations[state.pdfPage]=$('pdfDrawCanvas').toDataURL();
+  if(state.activeItem){
+    state.activeItem.annotations=state.pdfAnnotations;
+    const af=activeFolder();
+    if(af){const idx=af.items.findIndex(i=>i.id===state.activeItem.id);if(idx!==-1)af.items[idx]=state.activeItem;save();}
+  }
+}
+function changePage(dir){
+  savePageAnnotation(); state.pdfHist=[]; state.pdfHistI=-1;
+  state.pdfPage=Math.max(1,Math.min(state.pdfPage+dir,state.pdfDoc.numPages));
+  renderPDFPage();
+}
+function pdfZoom(dir){
+  state.pdfScale=Math.max(0.7,Math.min(4,state.pdfScale+dir*0.3));
+  $('zoomLabel').textContent=Math.round(state.pdfScale*100)+'%';
+  renderPDFPage();
+}
+function togglePDFDraw(){
+  state.pdfDrawMode=!state.pdfDrawMode;
+  const dc=$('pdfDrawCanvas');
+  if(state.pdfDrawMode){
+    dc.classList.add('active');
+    $('pdfDrawToggle').style.cssText='background:#7c3aed;border-color:#7c3aed;color:#fff';
+    $('pdfDrawBar').classList.add('show');
+    makePDFDrawHandlers();
+  } else {
+    dc.classList.remove('active');
+    $('pdfDrawToggle').style.cssText='color:#47a96e';
+    $('pdfDrawBar').classList.remove('show');
+  }
+}
+function setPDFTool(t){
+  state.pdfDrawTool=t;
+  $('pdfPenBtn').style.cssText=t==='pen'?'background:#7c3aed;color:#fff;border-color:#7c3aed':'';
+  $('pdfEraserBtn').style.cssText=t==='eraser'?'background:#7c3aed;color:#fff;border-color:#7c3aed':'';
+  renderPDFColors();
+}
+function renderPDFColors(){
+  $('pdfColors').innerHTML=PCOLORS.map(c=>`<button class="sw${state.pdfDrawColor===c&&state.pdfDrawTool!=='eraser'?' on':''}" style="background:${c}" onclick="state.pdfDrawColor='${c}';state.pdfDrawTool='pen';renderPDFColors()"></button>`).join('');
+}
+function renderPDFSizes(){
+  $('pdfSizes').innerHTML=PSIZES.map(s=>`<button class="sz${state.pdfDrawSize===s?' on':''}" style="width:${Math.max(s+8,16)}px;height:${Math.max(s+8,16)}px;min-width:16px;min-height:16px" onclick="state.pdfDrawSize=${s};renderPDFSizes()"></button>`).join('');
+}
+function togglePinPDF(){
+  if(!state.activeItem)return;
+  state.activeItem.pinned=!state.activeItem.pinned;
+  const af=activeFolder();
+  if(af){const idx=af.items.findIndex(i=>i.id===state.activeItem.id);if(idx!==-1)af.items[idx]=state.activeItem;save();}
+  $('pdfPinBtn').textContent=state.activeItem.pinned?'📌':'📍';
+}
+function deletePDF(){if(state.activeItem){deleteItem(state.activeItem.id);closePDF();}}
+function closePDF(){savePageAnnotation();$('pdfScreen').classList.remove('show');state.pdfDoc=null;renderItems();}
+
+// ── PIN ──
+let pinVal='';
+function openPinModal(title,correctPin,onSuccess){
+  pinVal=''; state.pinCorrect=correctPin; state.pinResolve=onSuccess;
+  $('pinTitle').textContent=title;
+  $('pinCancel').style.display=correctPin!==null?'':'none';
+  renderPinDots(); buildPinGrid(); $('pinOv').style.display='flex';
+}
+function closePinModal(){$('pinOv').style.display='none';}
+function renderPinDots(){
+  $('pinDots').innerHTML=[0,1,2,3].map(i=>`<div class="pin-dot${pinVal.length>i?' filled':''}"></div>`).join('');
+}
+function buildPinGrid(){
+  $('pinGrid').innerHTML=[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(d=>{
+    if(d==='')return'<div></div>';
+    return`<button style="padding:15px 0;border-radius:12px;border:1px solid #252535;background:#1c1c24;color:#e8e3dc;font-size:20px;cursor:pointer;font-family:'DM Mono',monospace;width:100%" onclick="pinPress('${d}')">${d}</button>`;
+  }).join('');
+}
+function pinPress(d){
+  if(d==='⌫'){pinVal=pinVal.slice(0,-1);renderPinDots();return;}
+  if(pinVal.length>=4)return;
+  pinVal+=d; renderPinDots();
+  if(pinVal.length===4){
+    setTimeout(()=>{
+      if(state.pinCorrect===null||pinVal===state.pinCorrect){
+        $('pinOv').style.display='none'; state.pinResolve(pinVal);
+      } else {pinVal='';renderPinDots();}
+    },200);
+  }
+}
+
+// ── Emoji ──
+function openEmojiFor(fid){
+  state.emojiFor=fid;
+  $('emojiGrid').innerHTML=EMOJIS.map(e=>`<button onclick="setFolderEmoji('${e}')" style="font-size:24px;background:none;border:none;cursor:pointer;padding:5px;border-radius:7px">${e}</button>`).join('');
+  $('emojiOv').style.display='flex';
+}
+function setFolderEmoji(e){
+  const f=state.folders.find(x=>x.id===state.emojiFor);
+  if(f){f.icon=e;save();renderSidebar();}
+  $('emojiOv').style.display='none';
+}
+
+// ── İstatistikler ──
+function showStats(){
+  const c=t=>state.folders.reduce((a,f)=>a+f.items.filter(i=>i.type===t).length,0);
+  const words=state.folders.reduce((a,f)=>a+f.items.filter(i=>i.type==='note').reduce((b,n)=>b+(n.body||'').split(/\s+/).filter(Boolean).length,0),0);
+  const rows=[
+    {l:'Klasör',v:state.folders.length,c:'#7c3aed'},{l:'Not',v:c('note'),c:'#0e7490'},
+    {l:'Çizim',v:c('drawing'),c:'#47a96e'},{l:'PDF',v:c('pdf'),c:'#e8613a'},
+    {l:'Kelime',v:words,c:'#f59e0b'},{l:'Toplam',v:c('note')+c('drawing')+c('pdf'),c:'#9333ea'}
+  ];
+  $('statsGrid').innerHTML=rows.map(r=>`
+    <div style="background:#1c1c26;border-radius:12px;padding:13px 15px">
+      <div style="font-size:24px;font-weight:700;color:${r.c};font-family:'DM Mono',monospace">${r.v}</div>
+      <div style="font-size:12px;color:#55556a;margin-top:2px">${r.l}</div>
+    </div>
+  `).join('');
+  $('statsOv').style.display='flex';
+}
+
+// ── Global arama ──
+function doGlobalSearch(){
+  const q=$('gSearch').value.toLowerCase().trim();
+  const res=$('gResults');
+  if(!q){res.style.display='none';return;}
+  const results=state.folders.flatMap(f=>f.items.filter(i=>
+    i.title.toLowerCase().includes(q)||(i.body||'').toLowerCase().includes(q)
+  ).map(i=>({...i,folderId:f.id,folderName:f.name,folderIcon:f.icon||'📁'}))).slice(0,10);
+  res.innerHTML=results.length===0
+    ?'<p style="padding:11px;color:#444;font-size:13px;text-align:center">Sonuç yok</p>'
+    :results.map(r=>`
+      <div onclick="selectGResult('${r.folderId}','${r.id}')" style="padding:8px 13px;cursor:pointer;border-bottom:1px solid #1a1a22">
+        <div style="font-size:11px;color:#444456;font-family:'DM Mono',monospace;margin-bottom:2px">${r.folderIcon} ${r.folderName}</div>
+        <div style="font-size:14px;color:#e8e3dc">${r.title}</div>
+      </div>
+    `).join('');
+  res.style.display='block';
+}
+function selectGResult(fid,iid){
+  $('gSearch').value=''; $('gResults').style.display='none';
+  state.activeFId=fid;
+  const af=activeFolder();
+  const item=af?.items.find(i=>i.id===iid); if(!item)return;
+  state.activeItem=item;
+  if(item.type==='pdf'){setView('folder');openPDFViewer(item);}
+  else{setView(item.type==='drawing'?'drawing':'note');}
+  renderSidebar();
+  if(isMobile())$('sidebar').classList.add('hide');
+}
+
+// ── Başlat ──
+renderSidebar();
+setView('home');
+</script>
+</body>
+</html>
